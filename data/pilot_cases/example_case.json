@@ -1,0 +1,20 @@
+{
+  "case_id": "example-001",
+  "scout_slices": [
+    {
+      "scout_id": "scout-plaintiff",
+      "role": "plaintiff_facts",
+      "raw_text": "Plaintiff alleges breach of contract, claiming the defendant failed to deliver goods by the agreed date and that the delay caused direct financial loss."
+    },
+    {
+      "scout_id": "scout-defendant",
+      "role": "defendant_facts",
+      "raw_text": "Defendant contends the delivery date was informally extended by email, and that plaintiff's own late payment was a contributing cause of the delay."
+    },
+    {
+      "scout_id": "scout-precedent",
+      "role": "prior_case_law",
+      "raw_text": "In a similar prior dispute, the court held that an informal email extension can modify a written delivery term if both parties acted on it in practice."
+    }
+  ]
+}
