@@ -15,4 +15,14 @@ def get_llm() -> ChatAnthropic:
     # (extract/hypothesize/score/write), not brainstorming - repeatability
     # matters more than variety. Raise it for the Reasoner specifically later
     # if branches end up too similar to each other.
-    return ChatAnthropic(model=config.MODEL_NAME, temperature=0)
+    #
+    # default_headers: works around a decompression bug in httpx2 2.13.1
+    # (the anthropic SDK's HTTP layer) - every compressed response hits a
+    # TypeError regardless of the algorithm negotiated. Asking the server for
+    # an uncompressed body sidesteps the buggy code path entirely. Safe to
+    # remove once a fixed httpx2/anthropic release is out.
+    return ChatAnthropic(
+        model=config.MODEL_NAME,
+        temperature=0,
+        default_headers={"Accept-Encoding": "identity"},
+    )
