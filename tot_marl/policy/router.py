@@ -3,7 +3,7 @@ the pipeline, deciding orchestration moves - never the content of an agent's
 reasoning. LLMRouter and LearnedRouter both implement RoutingPolicy, so
 critic.py never needs to know which one it's talking to.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -42,6 +42,7 @@ class RoutingDecision:
     action: str  # "advance" | "continue"
     updated_branches: list[Branch]
     reason: str = ""
+    llm_calls: int = 1  # how many real model calls this decision cost - 0 once LearnedRouter is real
 
 
 class RoutingPolicy:
@@ -64,14 +65,16 @@ class LLMRouter(RoutingPolicy):
             if b["branch_id"] in verdict_by_id else b
             for b in state["branches"]
         ]
-        return RoutingDecision(action=result.action, updated_branches=updated, reason=result.reason)
+        return RoutingDecision(action=result.action, updated_branches=updated, reason=result.reason, llm_calls=1)
 
 
 class LearnedRouter(RoutingPolicy):
     """Placeholder for a trained pi_phi (blueprint Section 5.1: MAPPO or GRPO
     over exactly this decision). Same RoutingDecision contract as LLMRouter -
     that's what lets config.USE_LEARNED_ROUTER flip the whole system over
-    without touching critic.py or graph.py.
+    without touching critic.py or graph.py. Once real, this makes zero LLM
+    calls - set llm_calls=0 on the RoutingDecision it returns, so the
+    efficiency metrics actually reflect the point of training it.
     """
 
     def __init__(self, checkpoint_path: str):

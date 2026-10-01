@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ToT-MARL — Live Walkthrough (dummy data)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F1B2E;
+    --surface: #16233A;
+    --surface-2: #1C2B46;
+    --ink: #EDE6D6;
+    --ink-dim: #8296B8;
+    --line: #2A3B58;
+    --accent: #C9A227;
+    --accent-ink: #2A2206;
+    --scout: #7FA8D9;
+    --reasoner: #9B7FD9;
+    --critic: #D97A89;
+    --synthesis: #7ABF8C;
+    --pruned: #5B6B86;
+    --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --font-sans: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 24px 64px;
+  }
+
+  header { margin-bottom: 40px; }
+  header h1 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  header .tagline {
+    color: var(--ink-dim);
+    font-size: 16px;
+    max-width: 62ch;
+    line-height: 1.5;
+    margin: 0;
+  }
+  header .pi-note {
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--ink-dim);
+  }
+  header .pi-note a { color: var(--accent); }
+
+  .progress {
+    display: flex;
+    gap: 8px;
+    margin: 28px 0 8px;
+  }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: transparent;
+    border: 1.5px solid var(--line);
+    transition: background 0.25s ease, border-color 0.25s ease;
+  }
+  .dot.active { background: var(--accent); border-color: var(--accent); }
+  .dot.done { border-color: var(--ink-dim); }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0 16px;
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .connector {
+    width: 1.5px;
+    height: 28px;
+    background: var(--line);
+  }
+
+  .node {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    min-width: 220px;
+    max-width: 280px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.4s ease, background 0.4s ease;
+  }
+  .node.visible { opacity: 1; transform: translateY(0); }
+  .node.recede { opacity: 0.45; }
+
+  .node-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 0.01em;
+  }
+  .node.scout { border-top: 3px solid var(--scout); }
+  .node.scout .node-label { color: var(--scout); }
+  .node.blackboard { border-top: 3px solid var(--ink-dim); min-width: 460px; max-width: 620px; }
+  .node.blackboard .node-label { color: var(--ink-dim); }
+  .node.branch { border-top: 3px solid var(--reasoner); }
+  .node.branch .node-label { color: var(--reasoner); }
+  .node.synthesis { border-top: 3px solid var(--synthesis); min-width: 460px; max-width: 620px; }
+  .node.synthesis .node-label { color: var(--synthesis); }
+
+  .node.branch.pruned {
+    opacity: 0.4;
+    border-top-color: var(--pruned);
+    background: var(--surface);
+  }
+  .node.branch.pruned .node-label { color: var(--pruned); }
+
+  .node-body, .hypothesis, .memo {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .memo { font-family: var(--font-serif); font-size: 16px; line-height: 1.6; }
+
+  .facts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .facts li {
+    font-size: 13px;
+    color: var(--ink-dim);
+    padding-left: 14px;
+    position: relative;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .facts li.visible { opacity: 1; transform: translateX(0); }
+  .facts li::before {
+    content: "";
+    position: absolute; left: 0; top: 7px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: currentColor;
+  }
+
+  .score-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .score-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-sans); font-weight: 600; font-size: 12.5px;
+    border-radius: 6px; padding: 3px 8px;
+    border: 1px solid var(--reasoner); color: var(--reasoner);
+    opacity: 0; transition: opacity 0.35s ease;
+  }
+  .score-badge.visible { opacity: 1; }
+  .node.branch.pruned .score-badge { border-color: var(--pruned); color: var(--pruned); }
+  .tag {
+    font-size: 11.5px; color: var(--ink-dim); border: 1px solid var(--line);
+    border-radius: 6px; padding: 2px 7px; opacity: 0; transition: opacity 0.35s ease;
+  }
+  .tag.visible { opacity: 1; }
+
+  .reason {
+    margin-top: 8px; font-size: 13px; color: var(--pruned);
+    max-height: 0; opacity: 0; overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.4s ease;
+  }
+  .reason.visible { max-height: 120px; opacity: 1; }
+
+  .callout {
+    max-width: 640px;
+    margin: 4px 0 2px;
+    padding: 14px 18px;
+    background: var(--surface-2);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+    max-height: 0; opacity: 0; overflow: hidden; padding-top: 0; padding-bottom: 0;
+    transition: max-height 0.4s ease, opacity 0.4s ease, padding 0.4s ease;
+  }
+  .callout.visible { max-height: 200px; opacity: 1; padding-top: 14px; padding-bottom: 14px; }
+  .callout b { color: var(--accent); }
+
+  .narration {
+    margin-top: 32px;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+  }
+  .step-count {
+    font-size: 12.5px; color: var(--ink-dim); margin-bottom: 8px;
+  }
+  .narration p {
+    margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch;
+  }
+
+  .controls {
+    display: flex; gap: 10px; margin-top: 22px;
+  }
+  button {
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 16px; cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  button:hover { border-color: var(--ink-dim); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.primary:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.35; cursor: default; }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13.5px;
+    color: var(--ink-dim);
+    line-height: 1.6;
+  }
+  footer a { color: var(--accent); text-decoration: underline; }
+  footer code {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 4px; padding: 1px 5px; font-size: 12.5px; color: var(--ink);
+  }
+
+  @media (max-width: 620px) {
+    .node.blackboard, .node.synthesis { min-width: 0; width: 100%; }
+    .page { padding: 32px 16px 48px; }
+  }
+
+  /* --- Evaluation panel --- */
+  .layout {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+  }
+  .stage-col { flex: 1 1 600px; min-width: 0; }
+  .eval-col {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: sticky;
+    top: 24px;
+  }
+  @media (max-width: 980px) {
+    .layout { flex-direction: column; }
+    .eval-col { flex: 1 1 auto; width: 100%; position: static; }
+  }
+
+  .eval-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .eval-card-title {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .eval-card-sub {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .metric-label { font-size: 12px; color: var(--ink-dim); margin-bottom: 3px; }
+  .metric-value {
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    transition: color 0.3s ease;
+  }
+  .metric-value.flash { color: var(--ink); }
+  .metric-note { font-size: 10.5px; color: var(--ink-dim); margin-top: 2px; line-height: 1.3; }
+
+  .tier-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+  .tier-list li { font-size: 13px; line-height: 1.5; color: var(--ink); }
+  .tier-list em { color: var(--ink-dim); font-style: normal; }
+  .tier-tag {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    border: 1px solid var(--line); border-radius: 5px;
+    padding: 1px 6px; margin-right: 6px; color: var(--ink-dim);
+  }
+
+  .eval-card-footer {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--ink-dim); line-height: 1.5;
+  }
+  .eval-link { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Watching the tree reason</h1>
+    <p class="tagline">
+      A scripted walkthrough of the ToT-MARL pipeline on a dummy contract
+      dispute — no model calls, no API key, just the architecture in motion.
+      Three scouts who can't see each other's facts, a reasoner that branches
+      into competing theories, a critic that prunes the weak ones, and a
+      synthesis that never saw the raw case.
+    </p>
+    <p class="pi-note">
+      The scoring step below is the one piece of this project meant to be
+      replaced by a trained policy someday — see
+      <a href="../docs/BLUEPRINT.md">the design doc</a> for why.
+    </p>
+  </header>
+
+  <div class="layout">
+  <div class="stage-col">
+
+  <div class="progress" id="progress"></div>
+
+  <main class="stage" id="stage">
+
+    <div class="row" id="row-scouts">
+      <div class="node scout" id="scout-0">
+        <div class="node-label">Scout: Plaintiff</div>
+        <div class="node-body">Contract set delivery for March 1. Goods arrived 18 days late — plaintiff says it cost a resale deal.</div>
+        <ul class="facts" id="scout-0-facts"></ul>
+      </div>
+      <div class="node scout" id="scout-1">
+        <div class="node-label">Scout: Defendant</div>
+        <div class="node-body">An email on Feb 20 proposed pushing delivery to March 15. Plaintiff's own payment arrived late too.</div>
+        <ul class="facts" id="scout-1-facts"></ul>
+      </div>
+      <div class="node scout" id="scout-2">
+        <div class="node-label">Scout: Prior case law</div>
+        <div class="node-body">Harmon v. Fields (2019): an unsigned email can modify a delivery term if both sides act on it.</div>
+        <ul class="facts" id="scout-2-facts"></ul>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="row">
+      <div class="node blackboard" id="blackboard">
+        <div class="node-label">Shared blackboard</div>
+        <ul class="facts" id="blackboard-facts"></ul>
+      </div>
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="row" id="row-branches">
+      <div class="node branch" id="branch-a">
+        <div class="node-label">Branch A</div>
+        <div class="hypothesis" id="branch-a-hyp"></div>
+        <div class="score-row">
+          <span class="score-badge" id="branch-a-score"></span>
+          <span class="tag" id="branch-a-tag">extended</span>
+        </div>
+      </div>
+      <div class="node branch" id="branch-b">
+        <div class="node-label">Branch B</div>
+        <div class="hypothesis" id="branch-b-hyp"></div>
+        <div class="score-row">
+          <span class="score-badge" id="branch-b-score"></span>
+        </div>
+        <div class="reason" id="branch-b-reason">Misreads Harmon — the case doesn't require a signed writing, only conduct. This branch argues against a rule that isn't the actual rule.</div>
+      </div>
+      <div class="node branch" id="branch-c">
+        <div class="node-label">Branch C</div>
+        <div class="hypothesis" id="branch-c-hyp"></div>
+        <div class="score-row">
+          <span class="score-badge" id="branch-c-score"></span>
+          <span class="tag" id="branch-c-tag">extended</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout" id="callout">
+      <b>This is the swap point.</b> Right now a prompted LLM call scores and
+      prunes these branches. The project's whole premise: replace only this
+      decision with a small, separately-trained policy — everything upstream
+      and downstream stays exactly the same.
+    </div>
+
+    <div class="connector"></div>
+
+    <div class="row">
+      <div class="node synthesis" id="synthesis">
+        <div class="node-label">Synthesis</div>
+        <div class="memo" id="synthesis-memo"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="narration">
+    <div class="step-count" id="step-count"></div>
+    <p id="narration-text"></p>
+  </div>
+
+  <div class="controls">
+    <button id="btn-prev">Prev</button>
+    <button id="btn-play" class="primary">Play</button>
+    <button id="btn-next" class="primary">Next</button>
+  </div>
+
+  </div><!-- /stage-col -->
+
+  <div class="eval-col">
+
+    <div class="eval-card">
+      <div class="eval-card-title">Cooperation metrics</div>
+      <div class="eval-card-sub">Computed live from this run, with the same formulas as <code>eval/metrics.py</code> — real numbers, not illustrative ones.</div>
+      <div class="metric-grid">
+        <div>
+          <div class="metric-label">LLM calls</div>
+          <div class="metric-value" id="m-calls">0</div>
+        </div>
+        <div>
+          <div class="metric-label">Branches pruned</div>
+          <div class="metric-value" id="m-pruned">0 / 0</div>
+        </div>
+        <div>
+          <div class="metric-label">Branch diversity</div>
+          <div class="metric-value" id="m-diversity">—</div>
+          <div class="metric-note">0 = converged on one theory, 1 = fully distinct</div>
+        </div>
+        <div>
+          <div class="metric-label">Source Gini</div>
+          <div class="metric-value" id="m-gini">—</div>
+          <div class="metric-note">0 = draws evenly across scouts, 1 = one-sided</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="eval-card">
+      <div class="eval-card-title">Output evaluation</div>
+      <div class="eval-card-sub">What a real decided case would also measure — not computable on invented facts, so shown as a framework, not fake numbers.</div>
+      <ul class="tier-list">
+        <li><span class="tier-tag">Tier 1</span>Citation validity, outcome match, fact fidelity <em>— needs a real decided case</em></li>
+        <li><span class="tier-tag">Tier 2</span>Legal soundness, synthesis redundancy/retention <em>— needs a human-validated judge prompt</em></li>
+        <li><span class="tier-tag">Tier 3</span>Genuinely contested calls <em>— tracked, never forced into a score</em></li>
+      </ul>
+      <div class="eval-card-footer">"Harmon v. Fields" above is invented for this walkthrough — it isn't a real citation, and nothing here checked it against one.</div>
+      <a class="eval-link" href="../docs/EVALUATION.md">Full metric breakdown →</a>
+    </div>
+
+  </div><!-- /eval-col -->
+  </div><!-- /layout -->
+
+  <footer>
+    This is a scripted walkthrough with dummy data, for demonstration only —
+    nothing here calls a real model. To see it reason for real: clone the
+    repo, add your own <code>ANTHROPIC_API_KEY</code>, and run
+    <code>python -m eval.run_pilot</code>.
+    <a href="https://github.com/angjelinhila/tot-marl">View the repo on GitHub →</a>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const FACTS = {
+    plaintiff: [
+      "Contract set delivery for March 1.",
+      "Goods arrived 18 days late, on March 19.",
+      "Plaintiff lost a $40,000 resale contract because of the delay."
+    ],
+    defendant: [
+      "An email on Feb 20 proposed moving delivery to March 15.",
+      "Plaintiff's payment, due Feb 1, didn't arrive until Feb 28.",
+      "No written amendment to the contract was ever signed."
+    ],
+    precedent: [
+      "Harmon v. Fields: an unsigned email can modify a delivery term if both sides act on it.",
+      "Harmon looked at conduct after the email, not just its existence."
+    ]
+  };
+  const scoutFacts = [FACTS.plaintiff, FACTS.defendant, FACTS.precedent];
+  const ALL_ROLES = Object.keys(FACTS);
+
+  // Each branch's cited support, tagged by scout role - this is exactly the
+  // shape eval/metrics.py works with (minus the fuzzy text-matching it needs
+  // for real LLM output, since here we author the tags directly).
+  const support = {
+    a1: [{ role: "defendant", text: FACTS.defendant[0] }, { role: "defendant", text: FACTS.defendant[1] }, { role: "precedent", text: FACTS.precedent[0] }],
+    b1: [{ role: "defendant", text: FACTS.defendant[2] }, { role: "plaintiff", text: FACTS.plaintiff[1] }],
+    c1: [{ role: "plaintiff", text: FACTS.plaintiff[2] }, { role: "plaintiff", text: FACTS.plaintiff[1] }],
+  };
+  support.a2 = support.a1.concat([{ role: "plaintiff", text: FACTS.plaintiff[0] }]);
+  support.c2 = support.c1.concat([{ role: "precedent", text: FACTS.precedent[1] }]);
+
+  const branchText = {
+    a: {
+      hyp1: "The late payment shows the plaintiff itself didn't treat March 1 as firm — both sides acted on the new date, so the extension holds and breach fails.",
+      hyp2: "Harmon requires BOTH sides to act on the change. The defendant's own delayed shipment is itself evidence defendant also treated the schedule as fluid — reinforcing mutual acceptance.",
+      score1: "0.78", score2: "0.85"
+    },
+    b: {
+      hyp1: "There's no signed amendment. An 18-day delay is a straightforward breach, regardless of the email.",
+      score1: "0.25"
+    },
+    c: {
+      hyp1: "Even if delivery was late, did it actually cause the $40,000 loss — or did the resale deal have its own, earlier deadline?",
+      hyp2: "No fact in the record gives the resale contract's own deadline, so this causation theory can't be confirmed — it stays a reasonable alternative, but weaker than Branch A on the facts we have.",
+      score1: "0.65", score2: "0.55"
+    }
+  };
+
+  // --- Ported from eval/metrics.py, same formulas, so this demo's numbers
+  // are real computations, not decorative ones. ---
+
+  function gini(values) {
+    values = values.filter(v => v >= 0);
+    const total = values.reduce((a, b) => a + b, 0);
+    if (values.length === 0 || total === 0) return 0;
+    const sorted = values.slice().sort((a, b) => a - b);
+    const n = sorted.length;
+    let cum = 0;
+    sorted.forEach((v, i) => { cum += (i + 1) * v; });
+    return (2 * cum) / (n * total) - (n + 1) / n;
+  }
+
+  function branchSupportGini(survivingSupportLists) {
+    // survivingSupportLists: array of arrays of {role, text}
+    if (ALL_ROLES.length < 2) return 0;
+    const counts = {};
+    ALL_ROLES.forEach(r => { counts[r] = 0; });
+    survivingSupportLists.forEach(list => {
+      list.forEach(item => { counts[item.role] += 1; });
+    });
+    const vals = Object.values(counts);
+    if (vals.reduce((a, b) => a + b, 0) === 0) return 0;
+    return gini(vals);
+  }
+
+  function branchDiversity(supportLists) {
+    // supportLists: array of arrays of {role, text} - one array per branch
+    if (supportLists.length < 2) return 0;
+    const sets = supportLists.map(list =>
+      new Set(list.map(i => i.text).join(" ").toLowerCase().split(/\s+/))
+    );
+    const pairs = [];
+    for (let i = 0; i < sets.length; i++) for (let j = i + 1; j < sets.length; j++) pairs.push([i, j]);
+    if (pairs.length === 0) return 0;
+    const sims = [];
+    pairs.forEach(([i, j]) => {
+      const union = new Set([...sets[i], ...sets[j]]);
+      if (union.size === 0) return;
+      let inter = 0;
+      sets[i].forEach(x => { if (sets[j].has(x)) inter++; });
+      sims.push(inter / union.size);
+    });
+    if (sims.length === 0) return 0;
+    return 1 - (sims.reduce((a, b) => a + b, 0) / sims.length);
+  }
+
+  function fmt(n) { return n.toFixed(2); }
+
+  const finalMemo = "Breach is not established on this record. Under Harmon v. Fields, an unsigned email can modify a delivery term if both sides' conduct shows they treated it as changed — and here, the defendant's own delayed shipment and the plaintiff's own late payment both point the same way: both sides acted like March 1 no longer controlled. A narrower theory — that the delay didn't actually cause the resale loss — remains possible but isn't yet supported by any fact about the resale contract's own deadline. Recommendation: the mutual-conduct theory controls on this record; develop discovery on the resale timeline before relying on the causation argument alone.";
+
+  const steps = [
+    {
+      title: "The case (dummy data)",
+      narrate: "Three scouts each see only their own slice of a contract dispute — the plaintiff's framing, the defendant's framing, and a prior case. None of them sees what the others see.",
+      render: function (el) {
+        [el.scout0, el.scout1, el.scout2].forEach(n => n.classList.add("visible"));
+        setMetrics(0, 0, 0, null, null);
+      }
+    },
+    {
+      title: "Scouts extract facts",
+      narrate: "Each scout reads its own slice and pulls out atomic claims — no judgment yet about who's right, just what was said.",
+      render: function (el) {
+        revealFacts("scout-0-facts", scoutFacts[0]);
+        revealFacts("scout-1-facts", scoutFacts[1]);
+        revealFacts("scout-2-facts", scoutFacts[2]);
+        setMetrics(3, 0, 0, null, null); // 3 scout calls
+      }
+    },
+    {
+      title: "Facts land on the shared blackboard",
+      narrate: "All extracted facts land in one place. This is the only thing every later agent can see — not the raw text, just these facts.",
+      render: function (el) {
+        setVisible(el.blackboard, true);
+        const all = [].concat(scoutFacts[0], scoutFacts[1], scoutFacts[2]);
+        revealFacts("blackboard-facts", all);
+        [el.scout0, el.scout1, el.scout2].forEach(n => n.classList.add("recede"));
+        setMetrics(3, 0, 0, null, null);
+      }
+    },
+    {
+      title: "Reasoner branches into three theories",
+      narrate: "The reasoner proposes three genuinely different theories from the same fact pool: a mutual-conduct theory, a strict-breach theory, and a causation theory.",
+      render: function (el) {
+        [el.branchA, el.branchB, el.branchC].forEach(n => n.classList.add("visible"));
+        text("branch-a-hyp", branchText.a.hyp1);
+        text("branch-b-hyp", branchText.b.hyp1);
+        text("branch-c-hyp", branchText.c.hyp1);
+        const diversity = branchDiversity([support.a1, support.b1, support.c1]);
+        setMetrics(6, 0, 3, diversity, null); // +3 reasoner calls
+      }
+    },
+    {
+      title: "Critic scores every branch",
+      narrate: "The critic checks each branch's reasoning against ALL the facts — including ones a branch didn't cite.",
+      render: function (el) {
+        scoreBadge("branch-a-score", branchText.a.score1, false);
+        scoreBadge("branch-b-score", branchText.b.score1, false);
+        scoreBadge("branch-c-score", branchText.c.score1, false);
+        setVisible(el.callout, true);
+        const diversity = branchDiversity([support.a1, support.b1, support.c1]);
+        setMetrics(7, 0, 3, diversity, null); // +1 critic call
+      }
+    },
+    {
+      title: "Branch B is pruned",
+      narrate: "Branch B misreads the precedent — Harmon doesn't require a signed writing, only conduct. The critic prunes it rather than carrying a flawed theory forward.",
+      render: function (el) {
+        el.branchB.classList.add("pruned");
+        setVisible(el.branchBReason, true);
+        setVisible(el.callout, false);
+        const diversity = branchDiversity([support.a1, support.b1, support.c1]);
+        const giniVal = branchSupportGini([support.a1, support.c1]); // survivors only
+        setMetrics(7, 1, 3, diversity, giniVal);
+      }
+    },
+    {
+      title: "Surviving branches get a second pass",
+      narrate: "A and C are still genuinely different theories, so the critic sends them back for one more round instead of forcing a premature pick.",
+      render: function (el) {
+        text("branch-a-hyp", branchText.a.hyp2);
+        text("branch-c-hyp", branchText.c.hyp2);
+        setVisible(el.branchATag, true);
+        setVisible(el.branchCTag, true);
+        const diversity = branchDiversity([support.a1, support.b1, support.c1]);
+        const giniVal = branchSupportGini([support.a2, support.c2]); // now with extended support
+        setMetrics(9, 1, 3, diversity, giniVal); // +2 reasoner calls (extend A, C)
+      }
+    },
+    {
+      title: "Critic decides: advance",
+      narrate: "Branch A is now well-supported from both sides' conduct. Branch C stays honest about its own evidence gap. Two distinct theories survived — not a forced tie — so the critic advances to synthesis.",
+      render: function (el) {
+        scoreBadge("branch-a-score", branchText.a.score2, false);
+        scoreBadge("branch-c-score", branchText.c.score2, false);
+        const diversity = branchDiversity([support.a1, support.b1, support.c1]);
+        const giniVal = branchSupportGini([support.a2, support.c2]);
+        setMetrics(10, 1, 3, diversity, giniVal); // +1 critic call
+      }
+    },
+    {
+      title: "Synthesis writes the memo",
+      narrate: "Synthesis never saw the raw case text — only the branches and the fact pool. It picks the better-supported theory and says why, while naming what would revisit the other one.",
+      render: function (el) {
+        [el.scout0, el.scout1, el.scout2].forEach(n => n.classList.remove("recede"));
+        [el.branchA, el.branchC].forEach(n => n.classList.add("recede"));
+        setVisible(el.synthesis, true);
+        text("synthesis-memo", finalMemo);
+        const diversity = branchDiversity([support.a1, support.b1, support.c1]);
+        const giniVal = branchSupportGini([support.a2, support.c2]);
+        setMetrics(11, 1, 3, diversity, giniVal); // +1 synthesis call
+      }
+    }
+  ];
+
+  function byId(id) { return document.getElementById(id); }
+
+  const el = {
+    row_scouts: byId("row-scouts"),
+    row_branches: byId("row-branches"),
+    scout0: byId("scout-0"), scout1: byId("scout-1"), scout2: byId("scout-2"),
+    blackboard: byId("blackboard"),
+    branchA: byId("branch-a"), branchB: byId("branch-b"), branchC: byId("branch-c"),
+    branchBReason: byId("branch-b-reason"),
+    branchATag: byId("branch-a-tag"), branchCTag: byId("branch-c-tag"),
+    callout: byId("callout"),
+    synthesis: byId("synthesis"),
+    progress: byId("progress"),
+    stepCount: byId("step-count"),
+    narrationText: byId("narration-text"),
+    btnPrev: byId("btn-prev"),
+    btnNext: byId("btn-next"),
+    btnPlay: byId("btn-play"),
+    mCalls: byId("m-calls"),
+    mPruned: byId("m-pruned"),
+    mDiversity: byId("m-diversity"),
+    mGini: byId("m-gini")
+  };
+
+  function setMetrics(calls, prunedCount, totalBranches, diversity, giniVal) {
+    el.mCalls.textContent = String(calls);
+    el.mPruned.textContent = prunedCount + " / " + totalBranches;
+    el.mDiversity.textContent = diversity === null ? "—" : fmt(diversity);
+    el.mGini.textContent = giniVal === null ? "—" : fmt(giniVal);
+  }
+
+  function setVisible(node, v) {
+    if (!node) return;
+    node.classList.toggle("visible", v);
+  }
+  function text(id, value) { const n = byId(id); if (n) n.textContent = value; }
+  function revealFacts(listId, facts) {
+    const ul = byId(listId);
+    if (!ul) return;
+    ul.innerHTML = "";
+    facts.forEach(function (f, i) {
+      const li = document.createElement("li");
+      li.textContent = f;
+      ul.appendChild(li);
+      setTimeout(function () { li.classList.add("visible"); }, 60 * i);
+    });
+  }
+  function scoreBadge(id, value, pruned) {
+    const n = byId(id);
+    if (!n) return;
+    n.textContent = value;
+    n.classList.add("visible");
+  }
+
+  // dots
+  el.progress.innerHTML = "";
+  steps.forEach(function (_, i) {
+    const d = document.createElement("div");
+    d.className = "dot";
+    el.progress.appendChild(d);
+  });
+
+  let current = 0;
+  let playing = false;
+  let playTimer = null;
+
+  function renderUpTo(index) {
+    // Reset everything, then replay every step up to `index` so state is
+    // always consistent regardless of jumping around with Prev/Next.
+    document.querySelectorAll(".node").forEach(n => n.classList.remove("visible", "recede", "pruned"));
+    document.querySelectorAll(".facts").forEach(n => { n.innerHTML = ""; });
+    document.querySelectorAll(".score-badge").forEach(n => { n.textContent = ""; n.classList.remove("visible"); });
+    document.querySelectorAll(".tag").forEach(n => n.classList.remove("visible"));
+    document.querySelectorAll(".reason").forEach(n => n.classList.remove("visible"));
+    el.callout.classList.remove("visible");
+
+    for (let i = 0; i <= index; i++) {
+      steps[i].render(el);
+    }
+
+    el.stepCount.textContent = "Step " + (index + 1) + " of " + steps.length + " — " + steps[index].title;
+    el.narrationText.textContent = steps[index].narrate;
+
+    Array.from(el.progress.children).forEach(function (d, i) {
+      d.classList.toggle("active", i === index);
+      d.classList.toggle("done", i < index);
+    });
+
+    el.btnPrev.disabled = index === 0;
+    if (index === steps.length - 1) {
+      el.btnNext.textContent = "Restart";
+      stopPlaying();
+    } else {
+      el.btnNext.textContent = "Next";
+    }
+  }
+
+  function go(index) {
+    current = Math.max(0, Math.min(steps.length - 1, index));
+    renderUpTo(current);
+  }
+
+  function stopPlaying() {
+    playing = false;
+    el.btnPlay.textContent = "Play";
+    if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  }
+
+  function startPlaying() {
+    if (current === steps.length - 1) { go(0); }
+    playing = true;
+    el.btnPlay.textContent = "Pause";
+    tick();
+  }
+
+  function tick() {
+    if (!playing) return;
+    playTimer = setTimeout(function () {
+      if (current >= steps.length - 1) { stopPlaying(); return; }
+      go(current + 1);
+      tick();
+    }, 2600);
+  }
+
+  el.btnPrev.addEventListener("click", function () { stopPlaying(); go(current - 1); });
+  el.btnNext.addEventListener("click", function () {
+    stopPlaying();
+    if (current === steps.length - 1) { go(0); } else { go(current + 1); }
+  });
+  el.btnPlay.addEventListener("click", function () {
+    if (playing) { stopPlaying(); } else { startPlaying(); }
+  });
+
+  go(0);
+})();
+</script>
+</body>
+</html>

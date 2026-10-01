@@ -1,7 +1,3 @@
-"""Unit tests for the pure helper logic that sits next to the LLM calls -
-no model, no API key, no network. These are the cheapest possible check that
-prompt-adjacent formatting logic isn't silently broken.
-"""
 from tot_marl.policy.router import _format_branches
 
 

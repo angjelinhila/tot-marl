@@ -22,7 +22,11 @@ def critic_router(state: GraphState) -> Command:
     if decision.action == "advance" or state["depth"] >= config.MAX_TOT_DEPTH:
         return Command(
             goto="synthesis",
-            update={"branches": decision.updated_branches, "rollout_log": [log_entry]},
+            update={
+                "branches": decision.updated_branches,
+                "rollout_log": [log_entry],
+                "llm_call_count": decision.llm_calls,
+            },
         )
     return Command(
         goto="expand",
@@ -30,5 +34,6 @@ def critic_router(state: GraphState) -> Command:
             "branches": decision.updated_branches,
             "depth": state["depth"] + 1,
             "rollout_log": [log_entry],
+            "llm_call_count": decision.llm_calls,
         },
     )

@@ -2,9 +2,7 @@
 
 Kept separate from state.py on purpose: these are what we FORCE the model to
 produce (validated via tool-calling, through .with_structured_output), while
-state.py is what the GRAPH stores. Each node translates between the two -
-e.g. scout_node tags ExtractedFacts.facts with the scout's role before they
-go on the shared blackboard.
+state.py is what the GRAPH stores. Each node translates between the two.
 """
 from typing import Literal
 

@@ -1,10 +1,4 @@
-"""Reasoner layer: turns shared facts into competing Tree-of-Thought branches.
-
-First pass (depth 0): fan out NUM_INITIAL_BRANCHES fresh hypotheses.
-Later passes: fan out one Send per still-active branch, so a branch is
-EXTENDED (same branch_id) rather than silently re-created - the merge_branches
-reducer in memory.py depends on that id staying stable.
-"""
+"""Reasoner layer: turns shared facts into competing Tree-of-Thought branches."""
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.types import Send
 
@@ -39,7 +33,6 @@ _EXTEND_BRANCH_PROMPT = ChatPromptTemplate.from_messages([
 
 
 def expand_branches(state: GraphState) -> list[Send]:
-    """Router (attached via add_conditional_edges)."""
     if state["depth"] == 0:
         return [
             Send("reasoner", {"branch_seed": i, "shared_facts": state["shared_facts"], "parent_branch": None})
@@ -80,4 +73,4 @@ def reasoner_node(payload: dict) -> dict:
             "status": "active",
             "score": None,
         }
-    return {"branches": [branch]}
+    return {"branches": [branch], "llm_call_count": 1}

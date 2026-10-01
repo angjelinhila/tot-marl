@@ -1,7 +1,5 @@
-"""End-to-end smoke test: does the graph produce a real answer with real
-model calls? This is the genuine "does it work" signal, but it costs tokens
-and needs ANTHROPIC_API_KEY - skipped automatically if one isn't set (e.g. in
-CI without secrets configured), rather than failing the whole suite.
+"""End-to-end smoke test: real model calls, needs ANTHROPIC_API_KEY - skipped
+automatically if one isn't set.
 
     ANTHROPIC_API_KEY=sk-... pytest tests/test_graph_smoke.py -v -s
 """
@@ -23,6 +21,7 @@ def test_graph_runs_end_to_end():
     result = graph.invoke(load_case(DEFAULT_CASE))
 
     assert result["final_answer"] is not None
-    assert len(result["shared_facts"]) >= 3          # at least one per scout slice
+    assert len(result["shared_facts"]) >= 3
     assert len(result["rollout_log"]) >= 1
+    assert result["llm_call_count"] > 0
     assert all(b["status"] in ("active", "pruned", "selected") for b in result["branches"])

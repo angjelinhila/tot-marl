@@ -39,3 +39,4 @@ class GraphState(TypedDict):
     depth: int
     final_answer: Optional[str]
     rollout_log: Annotated[list[dict], operator.add]       # every routing decision - reward signal later
+    llm_call_count: Annotated[int, operator.add]           # one real model call = +1, from any node

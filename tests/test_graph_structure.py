@@ -1,7 +1,3 @@
-"""Graph wiring check - no model calls, no API key needed. Compiling the
-graph and inspecting its node/edge structure is enough to catch import errors
-or a broken wire without spending a single token.
-"""
 from tot_marl.graph import build_graph
 
 

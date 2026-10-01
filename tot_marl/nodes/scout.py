@@ -24,10 +24,6 @@ _PROMPT = ChatPromptTemplate.from_messages([
 
 
 def dispatch_scouts(state: GraphState) -> list[Send]:
-    """Router (attached via add_conditional_edges): one Send per scout slice.
-    Each Send's payload is intentionally NOT the full GraphState - a scout
-    only ever sees its own slice, never the others'.
-    """
     return [
         Send("scout", {"scout_slice": s, "case_id": state["case_id"]})
         for s in state["scout_slices"]
@@ -39,4 +35,4 @@ def scout_node(payload: dict) -> dict:
     chain = _PROMPT | get_llm().with_structured_output(ExtractedFacts)
     result: ExtractedFacts = chain.invoke({"role": slice_["role"], "raw_text": slice_["raw_text"]})
     tagged = [f"[{slice_['role']}] {fact}" for fact in result.facts]
-    return {"shared_facts": tagged}
+    return {"shared_facts": tagged, "llm_call_count": 1}
